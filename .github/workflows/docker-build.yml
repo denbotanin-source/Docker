@@ -21,10 +21,32 @@ jobs:
           cd "docker-pet-project(Flask+PostgreSQL)"
           docker build -t flask-postgres:latest .
 
+      - name: Run PostgreSQL
+        run: |
+          docker network create test-network || true
+          docker run -d \
+            --name postgres-test \
+            --network test-network \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=postgres \
+            postgres:15-alpine
+          sleep 5
+
       - name: Run container and test
         run: |
-          docker run -d --name test-app -p 5000:5000 flask-postgres:latest
-          sleep 3
+          docker run -d \
+            --name test-app \
+            --network test-network \
+            -e DB_HOST=postgres-test \
+            -e DB_NAME=postgres \
+            -e DB_USER=postgres \
+            -e DB_PASS=postgres \
+            -p 5000:5000 \
+            flask-postgres:latest
+          sleep 5
           curl -f http://localhost:5000/health || exit 1
           docker stop test-app
           docker rm test-app
+          docker stop postgres-test
+          docker rm postgres-test
