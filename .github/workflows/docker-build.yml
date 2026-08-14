@@ -1,0 +1,30 @@
+name: Build Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          cd "docker-pet-project(Flask+PostgreSQL)"
+          docker build -t flask-postgres:latest .
+
+      - name: Run container and test
+        run: |
+          docker run -d --name test-app -p 5000:5000 flask-postgres:latest
+          sleep 3
+          curl -f http://localhost:5000/health || exit 1
+          docker stop test-app
+          docker rm test-app
